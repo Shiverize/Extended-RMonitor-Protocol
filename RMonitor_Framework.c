@@ -21,24 +21,26 @@
 // Index counters
 int n = 0;
 int infoNo = 0;
+uint8_t lapC;
+static bool newMsg;
 
 int tempNum;
-char tempLet;
+uint8_t tempLet;
 bool sameMsg;
 
-uint8_t lapBuff[5];
-char infoBuff[6];
+int lapBuff[5];
+uint8_t infoBuff[6];
 // Timer buffers
-int ttgBuff[6];
-int todBuff[6];
-int rtBuff[6];
+uint8_t ttgBuff[6];
+uint8_t todBuff[6];
+uint8_t rtBuff[6];
 
-char flag;
+uint8_t flag;
 int lapsLeft;
 
 /******************************************************************************/
 
-static bool isNum(char input) {
+static bool isNum(uint8_t input) {
     
     switch(input) {
             case '0':
@@ -89,7 +91,7 @@ static bool isNum(char input) {
 
 /******************************************************************************/
 
-static bool isLetter(char input) {
+static bool isLetter(uint8_t input) {
 
     switch(input) {
                 // Uppercase
@@ -158,28 +160,23 @@ static bool isLetter(char input) {
 
 /******************************************************************************/
 
-    // Return letter
-char returnLetter() {
-    return tempLet;
-}
-    // Return number
-int8_t returnNumber() {
-    return tempNum;
-}
+/*******************************************************************************
+ * Lap calculation function
+ * 
+ * - works well
+ ******************************************************************************/
 
-/******************************************************************************/
+void calculateLapsLeft() {
 
-int8_t calculateLapsLeft() {
-    
-    int m = 0;
-
-    switch (n)
+    switch (lapC)
     {
+        case 0:
+            break;
         case 1:
             lapsLeft = lapBuff[0];
             break;
         case 2:
-            lapsLeft = (lapBuff[0]*10) + lapBuff[1];
+            lapsLeft = ((lapBuff[0])*10) + (lapBuff[1]);
             break;
         case 3:
             lapsLeft = (lapBuff[0]*100) + (lapBuff[1]*10) + lapBuff[2];
@@ -196,125 +193,104 @@ int8_t calculateLapsLeft() {
             break;
     }
 
-    return lapsLeft;
+    lapsGlobal = lapsLeft;
 
 }
 
+/*******************************************************************************
+ * Time-to-go and race time filling methods
+ ******************************************************************************/
+void fill_ttg() {
+    ttg_vrijeme.sat = (ttgBuff[0]-'0')*10 + ttgBuff[1]-'0';
+    ttg_vrijeme.minuta = (ttgBuff[2]-'0')*10 + ttgBuff[3]-'0';
+    ttg_vrijeme.sekunda = (ttgBuff[4]-'0')*10 + ttgBuff[5]-'0';
+}
 /******************************************************************************/
-        // OBSOLETE
+void fill_racetime() {
+    racetime.sat = (rtBuff[0]-'0')*10 + rtBuff[1]-'0';
+    racetime.minuta = (rtBuff[2]-'0')*10 + rtBuff[2]-'0';
+    racetime.sekunda = (rtBuff[4]-'0')*10 + rtBuff[5]-'0';
+}
 
-/*void checkInfo(uint8_t * txBuff) {
-
-    infoNo = 0;
-    n=0;
-    
-        // First, check if the character is a number
-    if (isNum(txBuff)==true) {
-        
-        
-
-        // Then check if it's a letter
-    } else if (isLetter(txBuff==true)) {
-            
-        infoBuff[j] = returnLetter();
-        j++;
-
-        // If it's a ',' character
-    } else if (tx_buffer[i] == ',') {
-        // ',' marks the end of one and progress to another information inside of the protocol
-        infoNo++;
-    } else {
-        // Do nothing, just wait for count
-    }
-}*/
-
-/******************************************************************************/
+/*******************************************************************************
+ * 
+ *                             HEARTBEAT METHOD
+ * 
+ ******************************************************************************/
 
 void checkHeartbeat(uint8_t * f) {
 
     int i = 0;
 
-    do {
+    while (getMsgRead()) {
         if (f[i]==',') {
             infoNo++;
             n=0;
         }
 
         if (f[i]==0x0A || f[i]==0x0D) {
-            sameMsg = false;
+            setMsgRead(false);
+            infoNo = 0;
         }
         
         switch (infoNo) {
             case 1: // Laps to go
                 if (isNum(f[i])==true) {
                         // tempNum je varijabla unutar 'isNum' metode
-                    lapBuff[n] = returnNumber();
+                    lapBuff[lapC] = tempNum;//returnNumber();
 
                         // At the end increment n
-                    n++;
+                    lapC++;
                 }
                 break;
             case 2: // Time to go
+                calculateLapsLeft();
                 if (isNum(f[i])==true) {
-                        // tempNum je varijabla unutar 'isNum' metode
-                    ttgBuff[n] = returnNumber();
-
+                    
+                    ttgBuff[n] = f[i];
                         // At the end increment n
                     n++;
                 }
                 break;
             case 3: // Time of day
+                lapC = 0;   // reset lap digit count
+                fill_ttg();
                 if (isNum(f[i])==true) {
-                        // tempNum je varijabla unutar 'isNum' metode
-                    todBuff[n] = returnNumber();
-
+                        
+                    todBuff[n] = f[i];
                         // At the end increment n
                     n++;
                 }
                 break;
             case 4: // Race time
                 if (isNum(f[i])==true) {
-                        // tempNum je varijabla unutar 'isNum' metode
-                    rtBuff[n] = returnNumber();
-
+                    
+                    rtBuff[n] = f[i];
                         // At the end increment n
                     n++;
                 }
                 break;
             case 5: // Flag status
+                fill_racetime();
                 if (isLetter(f[i])==true) {
-                    char tempLet = f[i];
-                    switch (tempLet)
+                    switch (f[i])
                     {
                         // Fixed 6 char length
-                    case 'G':
-                        flag = tempLet;     // "Green "
-                        break;
-                    case 'Y':
-                        flag = tempLet;     // "Yellow"
-                        break;
-                    case 'R':
-                        flag = tempLet;     // "Red   "
-                        break;
-                    case 'F':
-                        flag = tempLet;     // "Finish"
+                    case 'G':   // "Green "
+                    case 'Y':   // "Yellow"
+                    case 'R':   // "Red   "
+                    case 'F':   // "Finish"
+                        flag = f[i];
                         break;
                     default:
                         break;
                     }
                 }
-                    // Has to end after the flag
-                sameMsg = false;
                 break;
             default:                
                 break;
         }
-
             // Move forward
         i++;
-    } while (sameMsg==true);
-
-        // Reset the message state after LF/CR
-    sameMsg = true;
-
+    }
 }
