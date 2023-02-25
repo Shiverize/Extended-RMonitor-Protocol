@@ -14,12 +14,12 @@
  *
  ******************************************************************************/
 
-#include <app.h>
+#include "app.h"
 
 // Letter/number checks
 int lapsGlobal;
-datumvrijeme_t ttg_vrijeme;
-datumvrijeme_t racetime;
+datetime_t ttg_time;
+datetime_t racetime;
 
 PT_THREAD(app_rMon(pt_t *pt));
 

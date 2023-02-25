@@ -4,16 +4,13 @@
  * 
  * Authors: Borna Loncaric
  * 
- * Device name: EDS153
- * Ver: S-Race (v1.0)
- * 
  * Description:
  * 
- * Citanje RS232/485 podataka te konverzija u podatke suvisle semaforu.
+ * Reading RS232/485 serial data and semaphore conversion.
  *
  ******************************************************************************/
 
-#include <app.h>
+#include "app.h"
 
 /******************************************************************************/
 
@@ -23,7 +20,6 @@ bool msgEnd;
 bool msgRead;
 
 static uint8_t tx_buffer[200];  // 200 is a randomly defined number
-    // izmjenjeno sa uint8_t na char_t
 
 /*******************************************************************************
  * Buffer fill & clear operations
@@ -63,8 +59,7 @@ bool getMsgRead() {
 }
 
 /******************************************************************************
- * Petlja za iscitavanje serijskih podataka
- *  - potrebno staviti u PT
+ * Loop for reading incoming serial data
  *****************************************************************************/
 
 PT_THREAD (app_rMon(pt_t * pt)) {
